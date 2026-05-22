@@ -1,0 +1,232 @@
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { Nav } from "@/components/nav";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { formatCurrency, extractJSON } from "@/lib/utils";
+import type { SellerProfile, ValuationResult } from "@/lib/types";
+import { Loader2, TrendingUp, ArrowRight } from "lucide-react";
+
+const BUSINESS_TYPES = [
+  "Pest Control", "Laundromat", "Cleaning Service", "Landscaping",
+  "Retail", "Restaurant", "Auto Repair", "Childcare", "Gym / Fitness", "Other",
+];
+
+const REASONS = [
+  "Retirement", "Relocation", "Health", "Other opportunity", "Burnout", "Other",
+];
+
+const INITIAL: SellerProfile = {
+  businessType: "",
+  cityState: "",
+  annualRevenue: 0,
+  yearsInOperation: 0,
+  reasonForSelling: "",
+};
+
+export default function SellerIntakePage() {
+  const [form, setForm] = useState<SellerProfile>(INITIAL);
+  const [loading, setLoading] = useState(false);
+  const [valuation, setValuation] = useState<ValuationResult | null>(null);
+  const [error, setError] = useState("");
+
+  const update = (patch: Partial<SellerProfile>) => setForm((f) => ({ ...f, ...patch }));
+
+  const isValid =
+    form.businessType && form.cityState && form.annualRevenue > 0 &&
+    form.yearsInOperation > 0 && form.reasonForSelling;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setValuation(null);
+
+    try {
+      const res = await fetch("/api/valuation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          business_type: form.businessType,
+          revenue: form.annualRevenue,
+          years_in_operation: form.yearsInOperation,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const data: ValuationResult = await res.json();
+      setValuation(data);
+
+      // Persist for questionnaire page
+      localStorage.setItem("seller_profile", JSON.stringify(form));
+      localStorage.setItem("seller_valuation", JSON.stringify(data));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Valuation failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <Nav />
+      <main className="max-w-2xl mx-auto px-4 py-10">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Get Your Instant Business Valuation</h1>
+          <p className="text-muted-foreground mt-1">
+            Answer 5 quick questions and we&apos;ll give you a market-based value range in seconds.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Estimate</CardTitle>
+            <CardDescription>Basic information to calculate your SDE multiple range.</CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="bizType">Business Type</Label>
+                <Select value={form.businessType} onValueChange={(v) => update({ businessType: v })}>
+                  <SelectTrigger id="bizType">
+                    <SelectValue placeholder="Select your industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BUSINESS_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cityState">City / State</Label>
+                <Input
+                  id="cityState"
+                  placeholder="e.g. Bellevue, WA"
+                  value={form.cityState}
+                  onChange={(e) => update({ cityState: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="revenue">Approx. Annual Gross Revenue</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input
+                    id="revenue"
+                    type="number"
+                    min={0}
+                    placeholder="350000"
+                    className="pl-7"
+                    value={form.annualRevenue || ""}
+                    onChange={(e) => update({ annualRevenue: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="years">Years in Operation</Label>
+                <Input
+                  id="years"
+                  type="number"
+                  min={0}
+                  max={100}
+                  placeholder="8"
+                  value={form.yearsInOperation || ""}
+                  onChange={(e) => update({ yearsInOperation: Number(e.target.value) })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reason">Reason for Selling</Label>
+                <Select value={form.reasonForSelling} onValueChange={(v) => update({ reasonForSelling: v })}>
+                  <SelectTrigger id="reason">
+                    <SelectValue placeholder="Select a reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REASONS.map((r) => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{error}</p>
+              )}
+
+              <Button
+                type="submit"
+                disabled={!isValid || loading}
+                className="w-full bg-[#185FA5] hover:bg-[#134d87]"
+              >
+                {loading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Calculating valuation...</>
+                ) : (
+                  "Get my instant valuation"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Valuation Result */}
+        {valuation && (
+          <div className="mt-6 space-y-4">
+            <Card className="border-2 border-[#185FA5] bg-blue-50/30">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-full bg-[#185FA5]/10">
+                    <TrendingUp className="h-6 w-6 text-[#185FA5]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Estimated Business Value</p>
+                    <p className="text-3xl font-bold text-[#185FA5]">
+                      {formatCurrency(valuation.low_estimate)} – {formatCurrency(valuation.high_estimate)}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      SDE estimate:{" "}
+                      <span className="font-medium text-foreground">{formatCurrency(valuation.sde_estimate)}</span>
+                      {" "}· Multiple used:{" "}
+                      <span className="font-medium text-foreground">{valuation.multiple_used}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                    Methodology
+                  </p>
+                  <p className="text-sm leading-relaxed">{valuation.methodology_note}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-50">
+              <CardContent className="pt-5">
+                <p className="text-sm font-medium mb-3">
+                  Ready to create your listing? Complete the seller questionnaire to go live.
+                </p>
+                <Link href="/seller/questionnaire">
+                  <Button className="bg-[#185FA5] hover:bg-[#134d87] w-full sm:w-auto">
+                    Continue to full questionnaire
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </main>
+    </>
+  );
+}
