@@ -13,9 +13,19 @@ export interface Listing {
   type: string;
   askingPrice: number;
   revenue: number;
+  sde: number;
   location: string;
   fitScore: number;
   description: string;
+  yearEstablished: number;
+  employees: number;
+  ownerHoursPerWeek: number;
+  leaseTerm: string;
+  growthTrend: "growing" | "stable" | "declining";
+  highlights: string[];
+  sdeMargin: number;
+  multipleOnAsk: number;
+  state: string;
 }
 
 export interface RiskScore {
