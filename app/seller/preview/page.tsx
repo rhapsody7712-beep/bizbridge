@@ -9,8 +9,9 @@ import { formatCurrency } from "@/lib/utils";
 import type { SellerQuestionnaire } from "@/lib/types";
 import {
   MapPin, DollarSign, Calendar, FileText, Users, Loader2,
-  CheckCircle2, Sparkles, Building2
+  CheckCircle2, Sparkles, Building2, BarChart3, Clock, TrendingUp, Flame,
 } from "lucide-react";
+import { getMarketContext } from "@/lib/mockSellerData";
 
 export default function SellerPreviewPage() {
   const [data, setData] = useState<SellerQuestionnaire | null>(null);
@@ -63,6 +64,7 @@ export default function SellerPreviewPage() {
   }
 
   const { sellerProfile, valuation, financials, askingPrice, leaseInfo, ownerPresence, documentNames, whySelling } = data;
+  const market = getMarketContext(sellerProfile?.businessType ?? "");
 
   return (
     <>
@@ -245,6 +247,58 @@ export default function SellerPreviewPage() {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Market Position */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-[#185FA5]" />
+                Market Position — {sellerProfile?.businessType} in WA
+              </CardTitle>
+              <CardDescription>How your listing compares to the current market</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center bg-gray-50 rounded-lg p-3 border">
+                  <Building2 className="h-4 w-4 text-[#185FA5] mx-auto mb-1" />
+                  <div className="text-xs text-muted-foreground">Active Listings</div>
+                  <div className="font-bold text-lg">{market.activeListings}</div>
+                  <div className="text-xs text-muted-foreground">competing</div>
+                </div>
+                <div className="text-center bg-gray-50 rounded-lg p-3 border">
+                  <Clock className="h-4 w-4 text-amber-600 mx-auto mb-1" />
+                  <div className="text-xs text-muted-foreground">Avg. Days to Close</div>
+                  <div className="font-bold text-lg">{market.avgDaysToClose}</div>
+                  <div className="text-xs text-muted-foreground">days</div>
+                </div>
+                <div className="text-center bg-gray-50 rounded-lg p-3 border">
+                  <TrendingUp className="h-4 w-4 text-green-600 mx-auto mb-1" />
+                  <div className="text-xs text-muted-foreground">Market Multiple</div>
+                  <div className="font-bold text-sm mt-1">{market.avgMultiple}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+                <Flame className={`h-5 w-5 shrink-0 ${
+                  market.buyerDemandLevel === "High" ? "text-orange-500" :
+                  market.buyerDemandLevel === "Medium" ? "text-yellow-500" : "text-gray-400"
+                }`} />
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Buyer Demand</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      market.buyerDemandLevel === "High" ? "bg-orange-100 text-orange-700" :
+                      market.buyerDemandLevel === "Medium" ? "bg-yellow-100 text-yellow-700" :
+                      "bg-gray-100 text-gray-600"
+                    }`}>
+                      {market.buyerDemandLevel}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{market.pricePositionNote}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

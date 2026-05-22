@@ -38,6 +38,17 @@ export default function SellerQuestionnairePage() {
       setSellerProfile(p);
       setWhySelling(p.reasonForSelling);
     }
+    // Load prefill data from sample seller if available
+    const prefill = localStorage.getItem("seller_questionnaire_prefill");
+    if (prefill) {
+      const q = JSON.parse(prefill);
+      if (q.whySelling) setWhySelling(q.whySelling);
+      if (q.askingPrice) setAskingPrice(q.askingPrice);
+      if (q.financials) setFinancials(q.financials);
+      if (q.leaseInfo) setLeaseInfo(q.leaseInfo);
+      if (q.ownerPresence) setOwnerPresence(q.ownerPresence);
+      localStorage.removeItem("seller_questionnaire_prefill");
+    }
   }, []);
 
   const updateFinancialRow = (i: number, field: keyof FinancialRow, value: string) => {
